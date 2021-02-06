@@ -11,18 +11,25 @@
 
 ga_queue::ga_queue(int node_count)
 {
-	// TODO:
-	// Initialize the queue.
-	// For extra credit, preallocate 'node_count' elements (instead of
-	// allocating on push).
-	// See https://www.research.ibm.com/people/m/michael/podc-1996.pdf
+	ga_node* node = new ga_node();
+	node->next = NULL;
+
+	head = tail = new ga_node();
+
+	count = 0;
+	max_count = node_count; // unused
 }
 
 ga_queue::~ga_queue()
 {
-	// TODO:
-	// Free any resources held by the queue.
-	// See https://www.research.ibm.com/people/m/michael/podc-1996.pdf
+	void* value;
+
+	bool not_empty = pop(&value);
+	while (not_empty) {
+		not_empty = pop(&value);
+	}
+
+	free(head);
 }
 
 void ga_queue::push(void* data)
@@ -33,6 +40,19 @@ void ga_queue::push(void* data)
 	// this function is called, you must block until another thread pops an
 	// element off the queue.
 	// See https://www.research.ibm.com/people/m/michael/podc-1996.pdf
+
+	ga_node* node = new ga_node();
+	node->value = data;
+	node->next = NULL;
+
+	tail_lock.lock();
+
+	tail->next = node;
+	tail = node;
+
+	tail_lock.unlock();
+
+	count++;
 }
 
 bool ga_queue::pop(void** data)
@@ -43,12 +63,29 @@ bool ga_queue::pop(void** data)
 	// If the queue is empty when this function is called, return false.
 	// Otherwise return true.
 	// See https://www.research.ibm.com/people/m/michael/podc-1996.pdf
-	return false;
+
+	head_lock.lock();
+
+	ga_node* node = head;
+	ga_node* new_head = node->next;
+
+	if (!new_head) {
+		head_lock.unlock();
+		return false;
+	}
+
+	*data = new_head->value;
+	head = new_head;
+
+	head_lock.unlock();
+
+	free(node);
+	count--;
+
+	return true;
 }
 
 int ga_queue::get_count() const
 {
-	// TODO:
-	// Get the number of elements currently in the queue.
-	return 0;
+	return count;
 }
